@@ -1,100 +1,45 @@
 import os 
-import shutil
 import json
 
-def write_to_logs(log_msg):
-    """
-    Writes to logs to double check errors and mistakes   
-    """
-    with open("log.txt", w) as log_file:
-        log_file.append(log_msg)
+metadata_file = open('metadata.json', 'r')
+metadata = json.load(metadata_file)
 
+starting_number = metadata["starting_number"]
+dir_path = metadata["dir_path"]
 
-def delete(path):
-    """Deletes every file in a folder
-    path: folder path
-    """
-    for f in os.listdir(path):
-        os.remove(os.path.join(path, f))
+metadata_file.close()
 
-def getPath():
-    """
-    Gets path of the from ./metadata.json/  
-    """
-    with open('metadata.json', 'r') as openfile:
-        global path
-        json_object = json.load(openfile)
-        pairs = json_object.items()
-        path = json_object["renamer"]["path"]
-    return path
+if type(starting_number) != int or starting_number < 0:
+    print("Invalid number!") 
+    quit()
 
-def getStartNumber():
-    """
-    returns the number of start renaming from ./metadata.json
-    """
-    with open('metadata.json', 'r') as openfile:
-        json_object = json.load(openfile)
-        pairs = json_object.items()
-        srt = json_object["renamer"]["srt"]
-    return srt
+if dir_path == "":
+    print("Invalid path!")
+    quit()
 
-def getSrcDst():
-    """
-    gets Sorce and Destination path from ./metadata.json/
-    """
-    with open('metadata.json', 'r') as openfile:
-        global path
-        json_object = json.load(openfile)
-        pairs = json_object.items()
-        src = json_object["backup"]["src"]
-        dst = json_object["backup"]["dst"]
-        srt = json_object["renamer"]["srt"]
-        return src, dst
-
-def backup(symlinks=False, ignore=None):
-    """
-    Backs up Renaming folder to a new folder in Desktop to prevent loss from errors
-    """
-    (src, dst) = getSrcDst()
-    delete(dst)
-    try:
-        for item in os.listdir(src):
-            s = os.path.join(src, item)
-            d = os.path.join(dst, item)
-            if os.path.isdir(s):
-                shutil.copytree(s, d, symlinks, ignore)
-            else:
-                shutil.copy2(s, d)
-                # print(f"Back up'd {src} in {dst}!")
-    except:
-        print("failed")
-
-def rename():
+def rename(starting_number, dir_path):
     """
     renames the renaming folder from according to the starting number 
     """
-    srt = getStartNumber()
-    path, backup_path = getSrcDst()
-    backup()
-    files = os.listdir(path) 
-    loop_number = 0
-    for index, file in enumerate(files):
-        
-        if not file.endswith('.jpg'):
-            if not file.endswith('.JPG'):
-                index = index - 1
-                continue
-                skips += 1
+    numeric_files = [] # Older files, Files which we want to ignore.
+    strings_files = [] # Newer files, Files which we want to rename.
+
+    for file in os.listdir(dir_path):
         try:
-            number = srt + loop_number
-            loop_number +=  1
-            os.rename(os.path.join(path, file), os.path.join(path, ''.join([str(number), '.jpg'])))
-            write_to_logs(f"{file} → {number}")
-            print(f"{file} → {number}")
-            sucess += 1
-        except Exception as err:
-            print(err)
+            int_file = int(os.path.splitext(file)[0])
+            numeric_files.append(file)
+        except:
+            strings_files.append(file)
 
-backup()
+    for files in numeric_files:
+        starting_number += 1
 
-rename()
+    for files in strings_files:
+        starting_number += 1
+        filename, file_extension = os.path.splitext(files)
+        os.rename(os.path.join(dir_path, files), os.path.join(dir_path, ''.join([str(starting_number), f"{file_extension}"])))
+        print(f"{files} -->  {os.path.join(''.join([str(starting_number), f'{file_extension}']))}")
+
+rename(starting_number, dir_path)
+
+print("Sucess!")
